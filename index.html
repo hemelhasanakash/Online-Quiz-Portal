@@ -4,1066 +4,454 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DUQS Online Quiz Portal</title>
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- JSZip for handling local zip file packaging/extracting -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-
     <style>
         .student-lockdown { user-select: none; -webkit-user-select: none; -ms-user-select: none; }
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #f1f1f1; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-        .media-preview { max-height: 250px; width: auto; object-fit: contain; border-radius: 0.5rem; }
         .screen { display: none; opacity: 0; transition: opacity 0.3s ease; }
         .screen.active { display: flex; opacity: 1; }
-        
-        /* DUQS Theming */
-        .duqs-bg { background-color: #1e3a8a; } /* Dark Blue */
-        .duqs-accent { color: #fbbf24; } /* Gold */
     </style>
-
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        // Environment variables provided by Canvas
-        const firebaseConfig = {
-  apiKey: "AIzaSyC6Luq6xaWRuO_a2PgwMGEW_Y5p6LEUA84",
-  authDomain: "duqs-online-quiz-portal.firebaseapp.com",
-  projectId: "duqs-online-quiz-portal",
-  storageBucket: "duqs-online-quiz-portal.firebasestorage.app",
-  messagingSenderId: "973547308536",
-  appId: "1:973547308536:web:32c4c23e149e1e5093c20d",
-  measurementId: "G-36GP363R3Z"
-};
-        window.db = null;
-        window.auth = null;
-        window.appId = appId;
-        
-        // Expose Firestore functions to global scope for the inline scripts
-        window.fs_doc = doc;
-        window.fs_setDoc = setDoc;
-        window.fs_getDoc = getDoc;
-        window.fs_collection = collection;
-        window.fs_addDoc = addDoc;
-        window.fs_getDocs = getDocs;
-
-        async function initAuth() {
-            if (Object.keys(firebaseConfig).length === 0) {
-                console.warn("No Firebase config detected. Cloud features will be disabled.");
-                return;
-            }
-            const app = initializeApp(firebaseConfig);
-            window.db = getFirestore(app);
-            window.auth = getAuth(app);
-            
-            try {
-                if (typeof __initial_auth_token !== 'undefined') {
-                    await signInWithCustomToken(window.auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(window.auth);
-                }
-                console.log("DUQS Secure DB Connected.");
-            } catch (err) {
-                console.error("Auth failed:", err);
-            }
-        }
-        
-        initAuth();
-    </script>
 </head>
 <body class="bg-gray-100 h-screen w-screen overflow-hidden font-sans text-gray-800">
 
-    <!-- SCREEN 0: HOME -->
     <div id="home-screen" class="screen active h-full w-full flex-col items-center justify-center relative bg-gray-50">
-        <div class="absolute inset-0 duqs-bg opacity-5"></div>
-        
         <div class="z-10 text-center mb-12">
             <img src="image_25ee5e.jpg" alt="DUQS Logo" class="w-48 h-auto mx-auto mb-6 drop-shadow-xl mix-blend-multiply rounded-xl">
-            <h1 class="text-4xl md:text-5xl font-black text-blue-900 tracking-tight">Dhaka University Quiz Society</h1>
+            <h1 class="text-4xl md:text-5xl font-black text-green-900 tracking-tight">Dhaka University Quiz Society</h1>
             <p class="text-xl text-gray-600 mt-3 font-medium">Official Online Quiz Portal</p>
         </div>
-        
         <div class="z-10 flex flex-col items-center gap-6">
-            <button onclick="switchScreen('student-login-screen')" class="flex items-center justify-center bg-blue-700 hover:bg-blue-800 text-white p-6 rounded-2xl shadow-2xl transition hover:-translate-y-1 w-80 text-2xl font-bold gap-4 border border-blue-600">
-                <i class="fa-solid fa-user-graduate text-3xl text-yellow-400"></i>
-                Quizzer Portal
+            <button onclick="switchScreen('student-load-screen')" class="flex items-center justify-center bg-red-600 hover:bg-red-700 text-white p-6 rounded-2xl shadow-xl transition hover:-translate-y-1 w-80 text-2xl font-bold gap-4">
+                <i class="fa-solid fa-user-graduate text-3xl"></i> Quizzer Portal
             </button>
-            
-            <button onclick="switchScreen('admin-auth-screen')" class="mt-12 text-sm text-gray-400 hover:text-gray-700 transition flex items-center gap-2">
+            <button onclick="switchScreen('admin-auth-screen')" class="mt-8 text-sm text-gray-500 hover:text-gray-800 transition flex items-center gap-2">
                 <i class="fa-solid fa-lock"></i> Admin Access
             </button>
         </div>
     </div>
 
-    <!-- SCREEN 0.5: ADMIN AUTH -->
-    <div id="admin-auth-screen" class="screen h-full w-full flex-col items-center justify-center relative bg-gray-900">
-        <button onclick="switchScreen('home-screen')" class="absolute top-6 left-6 text-gray-400 hover:text-white"><i class="fa-solid fa-arrow-left"></i> Home</button>
-        <div class="max-w-sm w-full bg-white p-8 rounded-2xl shadow-2xl text-center">
-            <i class="fa-solid fa-shield text-5xl text-blue-900 mb-4"></i>
-            <h2 class="text-2xl font-bold mb-6">Admin Authentication</h2>
-            <input type="password" id="admin-pass-input" placeholder="Enter Password" class="w-full p-3 border rounded-lg mb-4 text-center tracking-widest focus:ring-2 focus:ring-blue-900 outline-none">
-            <button onclick="verifyAdmin()" class="w-full bg-blue-900 hover:bg-blue-800 text-white font-bold py-3 rounded-lg transition">Login</button>
-            <p id="admin-auth-err" class="text-red-500 text-sm mt-3 hidden">Incorrect Password.</p>
-        </div>
+    <div id="admin-auth-screen" class="screen h-full w-full flex-col items-center justify-center bg-gray-900">
+        <form onsubmit="handleAdminLogin(event)" class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-sm text-center">
+            <i class="fa-solid fa-shield-halved text-5xl text-red-600 mb-4"></i>
+            <h2 class="text-2xl font-bold mb-6 text-gray-800">Admin Authentication</h2>
+            <input type="password" id="admin-pass-input" required placeholder="Enter DUQS Password" class="w-full p-3 border rounded mb-4 focus:ring-2 focus:ring-red-500 outline-none">
+            <button type="submit" id="admin-login-btn" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded transition">Login</button>
+            <button type="button" onclick="switchScreen('home-screen')" class="mt-4 text-sm text-gray-500 hover:text-gray-800">Cancel</button>
+        </form>
     </div>
 
-    <!-- SCREEN 1: ADMIN DASHBOARD -->
-    <div id="admin-dashboard-screen" class="screen h-full w-full flex-col bg-gray-100 relative">
-        <header class="bg-blue-900 text-white shadow px-8 py-4 flex justify-between items-center">
-            <div class="text-2xl font-bold"><i class="fa-solid fa-university text-yellow-400 mr-2"></i> DUQS Admin</div>
-            <button onclick="switchScreen('home-screen')" class="text-gray-300 hover:text-white">Logout <i class="fa-solid fa-sign-out-alt ml-1"></i></button>
-        </header>
-
-        <div class="flex-grow flex items-center justify-center p-8 gap-8">
-            <button onclick="switchScreen('admin-builder-screen')" class="bg-white p-10 rounded-2xl shadow-xl hover:shadow-2xl transition hover:-translate-y-1 w-80 text-center border-t-4 border-blue-500">
-                <i class="fa-solid fa-hammer text-6xl text-blue-500 mb-4"></i>
-                <h2 class="text-2xl font-bold text-gray-800">1. Quiz Builder</h2>
-                <p class="text-gray-500 text-sm mt-2">Create questions, mark correct answers, and export to ZIP.</p>
-            </button>
-            
-            <button onclick="switchScreen('admin-uploader-screen'); fetchAllResults();" class="bg-white p-10 rounded-2xl shadow-xl hover:shadow-2xl transition hover:-translate-y-1 w-80 text-center border-t-4 border-green-500">
-                <i class="fa-solid fa-cloud-arrow-up text-6xl text-green-500 mb-4"></i>
-                <h2 class="text-2xl font-bold text-gray-800">2. Publisher & Results</h2>
-                <p class="text-gray-500 text-sm mt-2">Upload a ZIP to generate an access code. View student analytics.</p>
-            </button>
-        </div>
-    </div>
-
-    <!-- SCREEN 2: ADMIN QUIZ BUILDER -->
-    <div id="admin-builder-screen" class="screen h-full w-full flex-col bg-gray-50 overflow-y-auto relative">
-        <header class="bg-white shadow px-8 py-4 flex justify-between items-center sticky top-0 z-50">
-            <div class="text-xl font-bold text-blue-900"><i class="fa-solid fa-tools mr-2"></i> DUQS Builder</div>
+    <div id="admin-dashboard" class="screen h-full w-full flex-col bg-gray-50 overflow-hidden">
+        <header class="bg-gray-900 text-white shadow px-8 py-4 flex justify-between items-center">
+            <div class="text-2xl font-bold"><i class="fa-solid fa-server mr-2 text-green-400"></i> DUQS Command Center</div>
             <div class="flex gap-4">
-                <button onclick="switchScreen('admin-dashboard-screen')" class="text-gray-500 hover:text-gray-800 font-medium">Back</button>
-                <button onclick="exportQuizZip()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded shadow font-bold">
-                    <i class="fa-solid fa-download mr-2"></i> Save to Local ZIP
-                </button>
+                <button onclick="openBuilder(null)" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded text-sm font-bold"><i class="fa-solid fa-plus"></i> New Quiz</button>
+                <button onclick="switchScreen('home-screen')" class="text-gray-300 hover:text-white">Logout</button>
             </div>
         </header>
-
-        <main class="max-w-4xl mx-auto w-full p-8 pb-32">
-            <!-- Settings -->
-            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
-                <h2 class="text-lg font-bold mb-4 border-b pb-2 text-gray-800">Exam Configuration</h2>
-                <div class="grid grid-cols-2 gap-6">
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-600 mb-1">Quiz Title</label>
-                        <input type="text" id="admin-quiz-title" value="DUQS Qualifier Exam" class="w-full p-2 border rounded focus:ring-blue-500 outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-600 mb-1">Time Limit (Minutes)</label>
-                        <input type="number" id="admin-time-limit" value="45" min="1" max="300" class="w-full p-2 border rounded focus:ring-blue-500 outline-none">
-                    </div>
-                </div>
+        <div class="flex-grow p-8 overflow-y-auto max-w-5xl mx-auto w-full">
+            <h3 class="text-xl font-bold mb-4 border-b pb-2">Active Quizzes in Drive</h3>
+            <div id="quiz-list-container" class="space-y-3">
+                <p class="text-gray-500 italic">Fetching quizzes from Google Drive...</p>
             </div>
-
-            <!-- Questions -->
-            <div id="admin-questions-container" class="space-y-6 mb-8"></div>
-
-            <button onclick="addAdminQuestion()" class="w-full py-4 border-2 border-dashed border-blue-300 text-blue-600 rounded-xl hover:bg-blue-50 hover:border-blue-500 font-bold transition flex justify-center items-center gap-2">
-                <i class="fa-solid fa-plus"></i> Add New Question
-            </button>
-        </main>
+        </div>
     </div>
 
-    <!-- SCREEN 3: ADMIN UPLOADER / PUBLISHER -->
-    <div id="admin-uploader-screen" class="screen h-full w-full flex-col bg-gray-50 overflow-y-auto relative">
+    <div id="admin-builder-screen" class="screen h-full w-full flex-col bg-gray-50 overflow-y-auto">
         <header class="bg-white shadow px-8 py-4 flex justify-between items-center sticky top-0 z-50">
-            <div class="text-xl font-bold text-green-700"><i class="fa-solid fa-cloud-arrow-up mr-2"></i> Publisher & Analytics</div>
-            <button onclick="switchScreen('admin-dashboard-screen')" class="text-gray-500 hover:text-gray-800 font-medium">Dashboard</button>
-        </header>
-
-        <main class="max-w-5xl mx-auto w-full p-8 grid grid-cols-1 md:grid-cols-3 gap-8">
-            
-            <!-- Publish Section -->
-            <div class="md:col-span-1 bg-white p-6 rounded-xl shadow border border-gray-200 h-max">
-                <h2 class="text-lg font-bold mb-4 border-b pb-2 text-gray-800">Publish a Quiz</h2>
-                <p class="text-sm text-gray-500 mb-4">Upload the ZIP file generated by the Quiz Builder to deploy it to the cloud.</p>
-                
-                <input type="file" id="admin-zip-upload" accept=".zip" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100 border rounded cursor-pointer mb-4">
-                
-                <button onclick="publishQuizToCloud()" id="btn-publish" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded transition">
-                    <i class="fa-solid fa-globe mr-2"></i> Publish to Platform
+            <div class="text-2xl font-bold text-red-700"><i class="fa-solid fa-hammer mr-2"></i> Quiz Builder</div>
+            <div class="flex gap-4">
+                <button onclick="switchScreen('admin-dashboard')" class="text-gray-500 hover:text-gray-800">Cancel</button>
+                <button onclick="saveAndPublishQuiz()" id="publish-btn" class="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded shadow font-bold">
+                    <i class="fa-solid fa-cloud-arrow-up mr-2"></i> Save & Publish to Drive
                 </button>
-                
-                <div id="publish-status" class="mt-4 p-4 bg-green-50 text-green-800 rounded-lg hidden border border-green-200 text-center">
-                    <p class="text-sm font-semibold mb-1">Quiz Published Successfully!</p>
-                    <p class="text-xs text-gray-600">Share this code with students:</p>
-                    <div class="text-2xl font-mono font-black tracking-widest mt-2" id="generated-code">DUQS-1234</div>
+            </div>
+        </header>
+        <main class="max-w-4xl mx-auto w-full p-8">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
+                <h2 class="text-xl font-bold mb-4 border-b pb-2">Exam Parameters</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Quiz Title (Used for Results Tab)</label>
+                        <input type="text" id="admin-title" class="w-full p-2 border rounded focus:ring-red-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Duration (Minutes)</label>
+                        <input type="number" id="admin-time" class="w-full p-2 border rounded focus:ring-red-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Window Start (Date & Time)</label>
+                        <input type="datetime-local" id="admin-start-time" class="w-full p-2 border rounded focus:ring-red-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Window End (Date & Time)</label>
+                        <input type="datetime-local" id="admin-end-time" class="w-full p-2 border rounded focus:ring-red-500 outline-none">
+                    </div>
                 </div>
             </div>
-            
-            <!-- Results Section -->
-            <div class="md:col-span-2 bg-white p-6 rounded-xl shadow border border-gray-200">
-                <div class="flex justify-between items-center mb-4 border-b pb-2">
-                    <h2 class="text-lg font-bold text-gray-800">Student Results Database</h2>
-                    <button onclick="fetchAllResults()" class="text-blue-600 hover:text-blue-800 text-sm"><i class="fa-solid fa-rotate"></i> Refresh</button>
-                </div>
-                
-                <div class="flex gap-2 mb-4">
-                    <input type="text" id="filter-code" placeholder="Filter by Quiz Code (e.g. DUQS-ABCD)" class="w-full p-2 border rounded focus:ring-blue-500 outline-none text-sm">
-                    <button onclick="filterResults()" class="bg-gray-200 hover:bg-gray-300 px-4 rounded text-gray-700 font-semibold text-sm">Filter</button>
-                </div>
-
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm text-left text-gray-500">
-                        <thead class="text-xs text-gray-700 uppercase bg-gray-100">
-                            <tr>
-                                <th class="px-4 py-3">Code</th>
-                                <th class="px-4 py-3">Student Name</th>
-                                <th class="px-4 py-3">Score</th>
-                                <th class="px-4 py-3 text-red-600">Strikes</th>
-                                <th class="px-4 py-3 text-orange-500">Tab Shifts</th>
-                                <th class="px-4 py-3">Time Used</th>
-                                <th class="px-4 py-3">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="results-table-body">
-                            <!-- Injected by JS -->
-                            <tr><td colspan="7" class="text-center py-4 text-gray-400 italic">Load results to view</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+            <div id="admin-questions-container" class="space-y-6 mb-8"></div>
+            <button onclick="addAdminQuestion()" class="w-full py-4 border-2 border-dashed border-red-300 text-red-600 rounded-xl hover:bg-red-50 font-bold transition flex justify-center items-center gap-2">
+                <i class="fa-solid fa-plus"></i> Add Question
+            </button>
         </main>
     </div>
 
-    <!-- Modal for Detailed Result -->
-    <div id="result-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[200] hidden flex-col items-center justify-center p-4">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
-            <div class="bg-blue-900 text-white px-6 py-4 flex justify-between items-center">
-                <h3 class="font-bold text-lg">Detailed Assessment Report</h3>
-                <button onclick="document.getElementById('result-modal').classList.add('hidden')" class="text-gray-300 hover:text-white text-xl"><i class="fa-solid fa-times"></i></button>
-            </div>
-            <div class="p-6 overflow-y-auto flex-grow" id="result-modal-content">
-                <!-- Injected via JS -->
-            </div>
+    <div id="student-load-screen" class="screen h-full w-full flex-col items-center justify-center bg-white relative">
+        <button onclick="switchScreen('home-screen')" class="absolute top-6 left-6 text-gray-500"><i class="fa-solid fa-arrow-left"></i> Home</button>
+        <div class="max-w-md w-full p-8 bg-white shadow-2xl rounded-2xl border text-center">
+            <i class="fa-solid fa-file-arrow-up text-6xl text-red-600 mb-6"></i>
+            <h2 class="text-2xl font-bold mb-2">Load Quiz</h2>
+            <p class="text-gray-500 mb-6">Upload the .zip file to check your exam schedule.</p>
+            <input type="file" id="quiz-zip-upload" accept=".zip" class="hidden" onchange="handleZipUpload(event)">
+            <label for="quiz-zip-upload" class="cursor-pointer block w-full py-3 bg-red-50 border-2 border-dashed border-red-300 text-red-700 rounded-lg font-bold hover:bg-red-100 transition">
+                Select Exam Package
+            </label>
+            <p id="schedule-error" class="text-red-500 mt-4 font-bold hidden"></p>
         </div>
     </div>
 
-
-    <!-- SCREEN 4: STUDENT LOGIN -->
-    <div id="student-login-screen" class="screen h-full w-full flex-col items-center justify-center bg-gray-50 relative">
-        <button onclick="switchScreen('home-screen')" class="absolute top-6 left-6 text-gray-500 hover:text-gray-800 font-medium"><i class="fa-solid fa-arrow-left"></i> Home</button>
-        
-        <div class="max-w-md w-full p-10 bg-white shadow-2xl rounded-3xl border border-gray-100 text-center">
-            <i class="fa-solid fa-qrcode text-6xl text-blue-700 mb-6"></i>
-            <h2 class="text-2xl font-black text-gray-900 mb-2">Access Exam</h2>
-            <p class="text-gray-500 mb-8 font-medium">Enter the Quiz Code provided by your instructor.</p>
-            
-            <input type="text" id="student-quiz-code" placeholder="e.g. DUQS-ABCD" class="w-full p-4 border-2 border-gray-200 rounded-xl mb-6 text-center text-xl font-bold tracking-widest uppercase focus:border-blue-600 focus:ring-0 outline-none">
-            
-            <button onclick="fetchQuizFromCloud()" id="btn-fetch-quiz" class="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-4 rounded-xl shadow-lg transition text-lg flex justify-center items-center gap-2">
-                Continue <i class="fa-solid fa-arrow-right"></i>
-            </button>
-            
-            <p id="student-login-err" class="text-red-500 text-sm mt-4 hidden font-medium">Invalid or missing code.</p>
-        </div>
-    </div>
-
-    <!-- SCREEN 5: STUDENT INFO -->
-    <div id="student-info-screen" class="screen h-full w-full flex-col items-center justify-center bg-gray-50">
-        <div class="max-w-lg w-full p-8 bg-white shadow-xl rounded-2xl border-t-4 border-blue-700">
-            <div class="text-center mb-6">
-                <h2 class="text-2xl font-bold text-blue-900" id="info-quiz-title">Quiz Title Here</h2>
-                <p class="text-gray-500 font-medium mt-1">Please enter your details to register for this session.</p>
-            </div>
-            
-            <form class="space-y-4" onsubmit="submitStudentInfo(event)">
-                <div>
-                    <label class="block text-sm font-bold text-gray-700 mb-1">Full Name *</label>
-                    <input type="text" id="std-name" required class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50">
-                </div>
-                <div>
-                    <label class="block text-sm font-bold text-gray-700 mb-1">Email Address *</label>
-                    <input type="email" id="std-email" required class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50">
-                </div>
-                <div>
-                    <label class="block text-sm font-bold text-gray-700 mb-1">Contact Number (Optional)</label>
-                    <input type="tel" id="std-contact" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50">
-                </div>
-                
-                <button type="submit" class="w-full mt-6 bg-blue-700 hover:bg-blue-800 text-white font-bold py-3.5 rounded-lg shadow transition text-lg">
-                    Proceed to Rules
-                </button>
+    <div id="student-info-screen" class="screen h-full w-full flex-col items-center justify-center bg-gray-50 relative">
+        <div class="max-w-lg w-full p-8 bg-white shadow-xl rounded-2xl">
+            <h2 class="text-2xl font-bold text-center mb-6" id="info-quiz-title">Quiz Title</h2>
+            <form id="student-info-form" onsubmit="submitStudentInfo(event)" class="space-y-4">
+                <input type="text" id="std-name" required placeholder="Full Name" class="w-full p-3 border rounded outline-none focus:ring-2 focus:ring-red-500">
+                <input type="email" id="std-email" required placeholder="Email Address" class="w-full p-3 border rounded outline-none focus:ring-2 focus:ring-red-500">
+                <input type="tel" id="std-contact" required placeholder="Contact Number" class="w-full p-3 border rounded outline-none focus:ring-2 focus:ring-red-500">
+                <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-lg mt-4">Continue</button>
             </form>
         </div>
     </div>
 
-    <!-- SCREEN 6: RULES / ANTI-CHEAT LOCKDOWN -->
-    <div id="setup-screen" class="screen h-full w-full flex-col items-center justify-center bg-white">
-        <div class="max-w-2xl w-full p-10 bg-white shadow-2xl rounded-3xl border border-gray-100">
-            <h1 class="text-3xl font-black text-red-600 mb-4 flex items-center gap-3"><i class="fa-solid fa-shield-halved"></i> Proctored Environment</h1>
-            <p class="text-gray-600 mb-6 font-medium text-lg">You are entering a secure lockdown environment. Acknowledge the rules below:</p>
-            
-            <ul class="space-y-4 mb-8 text-gray-800 bg-red-50 p-6 rounded-xl border border-red-100 font-medium">
-                <li class="flex items-start gap-3"><i class="fa-solid fa-expand text-red-500 mt-1"></i> <span><strong>Fullscreen Only:</strong> The exam demands fullscreen. Exiting causes a strike.</span></li>
-                <li class="flex items-start gap-3"><i class="fa-solid fa-window-restore text-red-500 mt-1"></i> <span><strong>No Tab Shifting:</strong> Leaving the tab or minimizing the window is recorded.</span></li>
-                <li class="flex items-start gap-3"><i class="fa-solid fa-keyboard text-red-500 mt-1"></i> <span><strong>Keyboard Locks:</strong> Copy/Paste and browser shortcuts are disabled.</span></li>
-                <li class="flex items-start gap-3"><i class="fa-solid fa-triangle-exclamation text-red-500 mt-1"></i> <span><strong>3 Strikes Policy:</strong> Accumulating 3 violations automatically terminates and fails your exam.</span></li>
-            </ul>
-
-            <div class="flex justify-between items-center mt-6">
-                <span class="font-bold text-blue-900 bg-blue-50 px-4 py-2 rounded-lg border border-blue-100"><i class="fa-solid fa-clock"></i> <span id="rules-time"></span> Mins</span>
-                <button onclick="initQuiz()" class="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-8 rounded-lg shadow-xl transition transform hover:scale-105">
-                    Start Exam
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- SCREEN 7: MAIN QUIZ INTERFACE -->
-    <div id="quiz-screen" class="screen h-full w-full flex-col bg-gray-50 student-lockdown relative z-10">
-        <header class="bg-white shadow-sm border-b px-4 md:px-8 py-4 flex justify-between items-center relative z-20">
-            <div class="flex flex-col md:flex-row md:items-center gap-2 md:gap-4">
-                <div class="text-xl font-black text-blue-900" id="header-title">DUQS Exam</div>
-                <div class="bg-red-100 text-red-800 px-3 py-1 rounded-md text-xs font-bold border border-red-200 tracking-wide">
-                    STRIKES: <span id="strike-counter">0</span> / 3
-                </div>
-            </div>
-            <div class="flex gap-4 items-center">
-                <button onclick="softRefresh()" class="text-gray-400 hover:text-blue-600 text-sm hidden md:flex items-center gap-2 font-medium">
-                    <i class="fa-solid fa-rotate"></i> Reload UI
-                </button>
-                <div class="text-xl font-mono font-bold bg-gray-800 text-yellow-400 px-4 py-2 rounded-lg shadow-inner" id="timer">00:00</div>
-            </div>
+    <div id="quiz-screen" class="screen h-full w-full flex-col bg-gray-50 student-lockdown">
+        <header class="bg-white shadow px-6 py-4 flex justify-between items-center">
+            <div class="text-xl font-bold" id="header-title">Exam</div>
+            <div id="timer" class="text-xl font-mono font-bold bg-gray-100 px-4 py-2 rounded">00:00</div>
         </header>
-
-        <main class="flex-grow overflow-y-auto p-4 md:p-8 flex justify-center w-full">
-            <div class="max-w-4xl w-full bg-white shadow-xl rounded-2xl p-6 md:p-10 border border-gray-200 h-max">
-                <div class="flex justify-between items-center text-sm text-gray-500 mb-8 uppercase tracking-wider border-b pb-4 font-bold">
-                    <span>Question <span id="current-q-num" class="text-blue-700 text-lg">1</span> of <span id="total-q-num">x</span></span>
-                    <span id="question-type-badge" class="bg-blue-50 text-blue-700 px-3 py-1 rounded-md border border-blue-200">MCQ</span>
-                </div>
-                <div id="question-content" class="mb-8"></div>
+        <main class="flex-grow overflow-y-auto p-6 flex justify-center">
+            <div class="max-w-4xl w-full bg-white shadow-lg rounded-xl p-8 h-max">
+                <h3 id="question-text" class="text-xl font-medium mb-6"></h3>
                 <div id="answer-container" class="grid grid-cols-1 gap-4"></div>
             </div>
         </main>
-
-        <footer class="bg-white shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] border-t px-4 md:px-8 py-4 flex justify-between items-center relative z-20">
-            <button id="prev-btn" onclick="navQuestion(-1)" class="px-6 py-3 border-2 border-gray-200 rounded-xl hover:bg-gray-50 text-gray-700 font-bold transition disabled:opacity-50 disabled:cursor-not-allowed">
-                <i class="fa-solid fa-arrow-left mr-2"></i> Prev
-            </button>
-            <div class="hidden md:block text-gray-400 text-xs font-bold uppercase tracking-widest"><i class="fa-solid fa-eye mr-1"></i> Proctored Session</div>
-            <button id="next-btn" onclick="navQuestion(1)" class="px-8 py-3 bg-blue-700 hover:bg-blue-800 rounded-xl text-white font-bold transition shadow-lg">
-                Next <i class="fa-solid fa-arrow-right ml-2"></i>
-            </button>
+        <footer class="bg-white shadow border-t px-6 py-4 flex justify-between">
+            <button onclick="navQuestion(-1)" id="prev-btn" class="px-5 py-2 border rounded">Prev</button>
+            <button onclick="navQuestion(1)" id="next-btn" class="px-5 py-2 bg-blue-600 text-white rounded">Next</button>
         </footer>
     </div>
-
-    <!-- WARNING OVERLAY -->
-    <div id="warning-overlay" class="fixed inset-0 bg-red-900 bg-opacity-95 z-[100] hidden flex-col items-center justify-center p-6 text-center student-lockdown">
-        <i class="fa-solid fa-triangle-exclamation text-8xl text-yellow-400 mb-6 animate-pulse drop-shadow-2xl"></i>
-        <h2 class="text-5xl font-black text-white mb-4 tracking-widest">VIOLATION DETECTED</h2>
-        <p id="warning-message" class="text-2xl text-red-200 mb-8 font-medium"></p>
-        <div class="bg-white p-8 rounded-2xl shadow-2xl text-gray-900 mb-8 w-full max-w-sm">
-            <p class="text-4xl font-black mb-2">Strike <span id="overlay-strike-count" class="text-red-600">1</span> of 3</p>
-            <p class="text-gray-600 font-medium">Accumulating 3 strikes terminates the exam immediately.</p>
-        </div>
-        <button onclick="resumeQuiz()" class="bg-yellow-500 hover:bg-yellow-400 text-red-900 font-black py-4 px-12 rounded-xl shadow-2xl text-2xl transition transform hover:scale-105">
-            RESUME EXAM
-        </button>
+    
+    <div id="warning-overlay" class="fixed inset-0 bg-red-900 bg-opacity-95 z-[100] hidden flex-col items-center justify-center p-6 text-center text-white student-lockdown">
+        <h2 class="text-4xl font-extrabold mb-4">SECURITY VIOLATION</h2>
+        <p id="warning-message" class="text-xl mb-4"></p>
+        <button onclick="resumeQuiz()" class="bg-yellow-500 text-red-900 font-bold py-3 px-8 rounded">Acknowledge</button>
     </div>
-
-    <!-- SCREEN 8: CONGRATS / WAITING -->
-    <div id="congrats-screen" class="screen h-full w-full flex-col bg-gray-900 items-center justify-center text-center p-6 text-white relative z-50">
-        <div id="end-icon" class="text-8xl mb-6 text-green-400"><i class="fa-solid fa-check-circle"></i></div>
-        <h1 id="end-title" class="text-5xl font-black mb-4 tracking-tight">Submission Received</h1>
-        <p id="end-message" class="text-xl text-gray-300 mb-12 font-medium max-w-xl">Your responses and security logs have been securely transmitted to the DUQS server.</p>
-        
-        <div class="bg-gray-800 p-8 rounded-2xl border border-gray-700 w-full max-w-md">
-            <h3 class="text-gray-400 font-bold uppercase tracking-widest mb-4 text-sm">Answer Key Availability</h3>
-            
-            <div id="wait-timer-container">
-                <p class="text-gray-300 mb-2">Answers will be revealed when the global exam time concludes in:</p>
-                <div id="reveal-countdown" class="text-4xl font-mono font-bold text-yellow-400">00:00</div>
-            </div>
-            
-            <div id="reveal-btn-container" class="hidden">
-                <p class="text-green-400 font-bold mb-4">The exam period has ended.</p>
-                <button onclick="showAnswers()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg transition shadow-lg">
-                    View Correct Answers
-                </button>
-            </div>
-        </div>
-        
-        <button onclick="location.reload()" class="absolute top-6 left-6 text-gray-500 hover:text-white font-medium">Exit Platform</button>
-    </div>
-
-    <!-- SCREEN 9: STUDENT ANSWER REVEAL -->
-    <div id="answers-screen" class="screen h-full w-full flex-col bg-gray-50 overflow-y-auto">
-        <header class="bg-blue-900 text-white shadow px-8 py-6 text-center sticky top-0 z-50">
-            <h1 class="text-3xl font-black">Official Answer Key</h1>
-            <p class="text-blue-200 mt-1">DUQS Assessment Platform</p>
-            <button onclick="location.reload()" class="absolute top-6 left-6 text-blue-300 hover:text-white font-medium"><i class="fa-solid fa-arrow-left"></i> Exit</button>
-        </header>
-        <main class="max-w-4xl mx-auto w-full p-8" id="answers-container">
-            <!-- Injected via JS -->
-        </main>
-    </div>
-
 
     <script>
-        // --- UTILITIES ---
-        function switchScreen(screenId) {
+        // --- 1. CORE CONFIGURATION ---
+        const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxPJKgLb09BYnrlWOywV0WTTI1e09fLDpCSPj0uif3okYXkPD040lPDxnOtX51TOpsl/exec"; 
+        
+        let sessionPassword = "";
+        let adminQuestions = [];
+        let studentData = {};
+        let quizState = {};
+        let currentQIndex = 0;
+        let userAnswers = [];
+        let timerInterval;
+        let timeRemaining = 0;
+        let strikes = 0;
+        let isExamActive = false;
+        
+        function switchScreen(id) {
             document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
-            document.getElementById(screenId).classList.add('active');
+            document.getElementById(id).classList.add('active');
         }
 
-        // Generate short random code
-        function genCode() {
-            return 'DUQS-' + Math.random().toString(36).substring(2, 6).toUpperCase();
+        // --- 2. ENTER KEY GLOBAL BINDING ---
+        // Allows pressing Enter to submit forms actively in focus
+        document.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                const activeForm = document.activeElement.closest('form');
+                if (activeForm) {
+                    e.preventDefault(); 
+                    const submitBtn = activeForm.querySelector('button[type="submit"]');
+                    if(submitBtn) submitBtn.click();
+                }
+            }
+        });
+
+        // --- 3. ADMIN: SECURE LOGIN ---
+        async function handleAdminLogin(e) {
+            e.preventDefault();
+            const btn = document.getElementById('admin-login-btn');
+            const pass = document.getElementById('admin-pass-input').value;
+            btn.textContent = "Verifying...";
+            btn.disabled = true;
+
+            try {
+                let res = await fetch(GAS_WEB_APP_URL, {
+                    method: 'POST', body: JSON.stringify({ action: "adminLogin", password: pass })
+                });
+                let data = await res.json();
+                if (data.status === "success") {
+                    sessionPassword = pass; // Store temporarily for session
+                    switchScreen('admin-dashboard');
+                    loadAdminDashboard();
+                } else {
+                    alert(data.message);
+                }
+            } catch (err) {
+                alert("Network error.");
+            }
+            btn.textContent = "Login";
+            btn.disabled = false;
         }
 
-        // File to Base64 (needed to bundle media inside JSON for Firebase)
-        function fileToBase64(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.readAsDataURL(file);
-                reader.onload = () => resolve(reader.result);
-                reader.onerror = error => reject(error);
+        async function loadAdminDashboard() {
+            const container = document.getElementById('quiz-list-container');
+            container.innerHTML = "Fetching...";
+            let res = await fetch(GAS_WEB_APP_URL, {
+                method: 'POST', body: JSON.stringify({ action: "listQuizzes", password: sessionPassword })
             });
-        }
-
-        // --- ADMIN AUTH ---
-        function verifyAdmin() {
-            if(document.getElementById('admin-pass-input').value === 'duqsadminsky') {
-                switchScreen('admin-dashboard-screen');
-                document.getElementById('admin-pass-input').value = '';
-                document.getElementById('admin-auth-err').classList.add('hidden');
+            let data = await res.json();
+            
+            if(data.files && data.files.length > 0) {
+                container.innerHTML = data.files.map(f => `
+                    <div class="flex justify-between items-center bg-white p-4 rounded shadow border">
+                        <span class="font-bold">${f.name}</span>
+                        <div class="flex gap-2">
+                            <button onclick="window.open('${f.url}')" class="text-blue-500 text-sm hover:underline">Drive Link</button>
+                        </div>
+                    </div>
+                `).join('');
             } else {
-                document.getElementById('admin-auth-err').classList.remove('hidden');
+                container.innerHTML = "<p>No quizzes found.</p>";
             }
         }
 
-
-        // --- 1. ADMIN BUILDER LOGIC ---
-        let adminQuestions = [];
+        function openBuilder(existingConfig) {
+            switchScreen('admin-builder-screen');
+            if(!existingConfig) {
+                document.getElementById('admin-title').value = "DUQS Exam " + Math.floor(Math.random()*1000);
+                adminQuestions = [];
+                addAdminQuestion();
+            }
+        }
 
         function addAdminQuestion() {
-            if (adminQuestions.length >= 100) return alert("Limit of 100 questions reached.");
-            adminQuestions.push({
-                id: Date.now(), text: "", type: "mcq", options: ["", "", "", ""], 
-                correctOptionIndex: 0, correctAnswerText: "", 
-                mediaFile: null, mediaBase64: null, mediaType: null
-            });
-            renderAdminQuestions();
-        }
-
-        async function handleMediaUpload(event, qIndex) {
-            const file = event.target.files[0];
-            if(!file) return;
-            
-            // Check size (Firestore limit is 1MB total doc size, restrict media to ~300KB each)
-            if(file.size > 400 * 1024) {
-                alert("File too large! Keep media under 400KB for cloud publishing.");
-                event.target.value = '';
-                return;
-            }
-            
-            adminQuestions[qIndex].mediaFile = file.name;
-            adminQuestions[qIndex].mediaType = file.type.split('/')[0];
-            adminQuestions[qIndex].mediaBase64 = await fileToBase64(file);
+            adminQuestions.push({ id: Date.now(), text: "", type: "mcq", options: ["","","",""], correctOption: 0, fileObj: null });
             renderAdminQuestions();
         }
 
         function renderAdminQuestions() {
             const container = document.getElementById('admin-questions-container');
-            container.innerHTML = '';
-            
-            adminQuestions.forEach((q, index) => {
-                const qDiv = document.createElement('div');
-                qDiv.className = "bg-white p-6 rounded-2xl shadow-sm border border-gray-200 relative";
-                
-                let html = `
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="font-bold text-blue-900 text-lg">Question ${index + 1}</h3>
-                        <button onclick="removeAdminQuestion(${index})" class="text-red-400 hover:text-red-600"><i class="fa-solid fa-trash"></i></button>
+            container.innerHTML = adminQuestions.map((q, i) => `
+                <div class="bg-white p-6 rounded-xl border border-gray-200">
+                    <div class="flex justify-between mb-2"><b>Q${i+1}</b> <button onclick="removeAdminQuestion(${q.id})" class="text-red-500"><i class="fa-solid fa-trash"></i></button></div>
+                    <textarea placeholder="Question Text" class="w-full p-2 border rounded outline-none mb-2" onchange="updateQText(${q.id}, this.value)">${q.text}</textarea>
+                    <div class="grid grid-cols-2 gap-2 mt-2">
+                        ${[0,1,2,3].map(optIdx => `
+                            <div class="flex items-center gap-2">
+                                <input type="radio" name="correct_${q.id}" ${q.correctOption === optIdx ? 'checked' : ''} onchange="updateCorrect(${q.id}, ${optIdx})" title="Mark Correct">
+                                <input type="text" placeholder="Option ${optIdx+1}" value="${q.options[optIdx]}" class="w-full p-2 border rounded outline-none" onchange="updateOption(${q.id}, ${optIdx}, this.value)">
+                            </div>
+                        `).join('')}
                     </div>
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Question Text</label>
-                            <textarea id="q_txt_${index}" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none resize-none" rows="2" onchange="adminQuestions[${index}].text = this.value">${q.text}</textarea>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Type</label>
-                                <select onchange="adminQuestions[${index}].type = this.value; renderAdminQuestions()" class="w-full p-2.5 border rounded-lg bg-gray-50">
-                                    <option value="mcq" ${q.type==='mcq'?'selected':''}>Multiple Choice</option>
-                                    <option value="short" ${q.type==='short'?'selected':''}>Short Answer</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Attach Media (Img/Aud/Vid)</label>
-                                <input type="file" accept="image/*, audio/*, video/*" onchange="handleMediaUpload(event, ${index})" class="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-blue-50 file:text-blue-700 border rounded-lg cursor-pointer">
-                                ${q.mediaFile ? `<div class="text-xs text-green-600 mt-1"><i class="fa-solid fa-check"></i> Attached: ${q.mediaFile}</div>` : ''}
-                            </div>
-                        </div>
-                `;
-
-                if (q.type === 'mcq') {
-                    html += `<div class="bg-gray-50 p-4 rounded-lg border mt-4">
-                                <div class="text-xs font-bold text-gray-500 uppercase mb-3 flex justify-between">
-                                    <span>Options</span>
-                                    <span class="text-green-600">Select Correct <i class="fa-solid fa-check"></i></span>
-                                </div>
-                                <div class="space-y-2">`;
-                    q.options.forEach((opt, oIdx) => {
-                        html += `
-                            <div class="flex items-center gap-3">
-                                <input type="radio" name="correct_${index}" ${q.correctOptionIndex === oIdx ? 'checked' : ''} onchange="adminQuestions[${index}].correctOptionIndex = ${oIdx}" class="w-5 h-5 text-green-600 focus:ring-green-500" title="Mark as correct">
-                                <input type="text" value="${opt}" onchange="adminQuestions[${index}].options[${oIdx}] = this.value" placeholder="Option ${oIdx + 1}" class="flex-grow p-2 border rounded outline-none focus:border-blue-500">
-                            </div>`;
-                    });
-                    html += `</div></div>`;
-                } else {
-                    html += `<div class="mt-4">
-                                <label class="block text-xs font-bold text-green-600 uppercase mb-1">Expected Correct Answer (For automated/manual grading reference)</label>
-                                <input type="text" value="${q.correctAnswerText}" onchange="adminQuestions[${index}].correctAnswerText = this.value" class="w-full p-3 border rounded-lg border-green-300 focus:ring-green-500 outline-none">
-                            </div>`;
-                }
-                
-                html += `</div>`; // close space-y-4
-                qDiv.innerHTML = html;
-                container.appendChild(qDiv);
-            });
+                </div>
+            `).join('');
         }
+        
+        function removeAdminQuestion(id) { adminQuestions = adminQuestions.filter(q => q.id !== id); renderAdminQuestions(); }
+        function updateQText(id, val) { adminQuestions.find(q=>q.id===id).text = val; }
+        function updateOption(id, optIdx, val) { adminQuestions.find(q=>q.id===id).options[optIdx] = val; }
+        function updateCorrect(id, optIdx) { adminQuestions.find(q=>q.id===id).correctOption = optIdx; }
 
-        function removeAdminQuestion(idx) {
-            adminQuestions.splice(idx, 1);
-            renderAdminQuestions();
-        }
+        async function saveAndPublishQuiz() {
+            const btn = document.getElementById('publish-btn');
+            btn.textContent = "Publishing...";
+            btn.disabled = true;
 
-        // Export logic using JSZip
-        async function exportQuizZip() {
-            if (adminQuestions.length === 0) return alert("Add at least one question.");
-            
             const zip = new JSZip();
             const config = {
-                title: document.getElementById('admin-quiz-title').value || "DUQS Exam",
-                timeLimit: parseInt(document.getElementById('admin-time-limit').value) || 45,
-                questions: adminQuestions // contains text, base64 media, and correct answers
+                title: document.getElementById('admin-title').value,
+                timeLimit: document.getElementById('admin-time').value,
+                startTime: document.getElementById('admin-start-time').value,
+                endTime: document.getElementById('admin-end-time').value,
+                questions: adminQuestions.map(q => ({
+                    text: q.text, options: q.options, correctOption: q.correctOption 
+                }))
             };
 
-            zip.file("duqs_quiz.json", JSON.stringify(config));
-            const content = await zip.generateAsync({type: "blob"});
-            
-            const url = URL.createObjectURL(content);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `DUQS_${config.title.replace(/\s+/g, '_')}.zip`;
-            a.click();
-        }
-
-
-        // --- 2. ADMIN PUBLISHER (ZIP to Firebase) ---
-        async function publishQuizToCloud() {
-            if(!window.db) return alert("Database not connected. Cannot publish.");
-            
-            const fileInput = document.getElementById('admin-zip-upload');
-            if(!fileInput.files[0]) return alert("Please select a ZIP file first.");
-
-            const btn = document.getElementById('btn-publish');
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Publishing...';
-            btn.disabled = true;
+            zip.file("config.json", JSON.stringify(config));
+            const zipContent = await zip.generateAsync({type: "base64"});
+            const filename = `${config.title.replace(/\s+/g, '_')}.zip`;
 
             try {
-                const zip = await JSZip.loadAsync(fileInput.files[0]);
-                const jsonStr = await zip.file("duqs_quiz.json").async("string");
-                const quizData = JSON.parse(jsonStr);
-                
-                const accessCode = genCode();
-                quizData.code = accessCode;
-                quizData.createdAt = Date.now();
+                let res = await fetch(GAS_WEB_APP_URL, {
+                    method: 'POST', body: JSON.stringify({ action: "saveQuiz", password: sessionPassword, base64: zipContent, filename: filename })
+                });
+                let data = await res.json();
+                if(data.status === "success") {
+                    alert("Published Successfully to Drive!");
+                    loadAdminDashboard();
+                    switchScreen('admin-dashboard');
+                }
+            } catch(e) { alert("Upload failed."); }
+            
+            btn.textContent = "Save & Publish to Drive";
+            btn.disabled = false;
+        }
 
-                // Save to Firestore: public/data/quizzes/{code}
-                await window.fs_setDoc(window.fs_doc(window.db, 'artifacts', window.appId, 'public', 'data', 'quizzes', accessCode), quizData);
+        // --- 4. STUDENT LOGIC ---
+        async function handleZipUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
 
-                document.getElementById('publish-status').classList.remove('hidden');
-                document.getElementById('generated-code').textContent = accessCode;
-                fileInput.value = '';
+            try {
+                const zip = await JSZip.loadAsync(file);
+                const config = JSON.parse(await zip.file("config.json").async("string"));
                 
+                // Enforce Time Range
+                const now = new Date();
+                const start = new Date(config.startTime);
+                const end = new Date(config.endTime);
+                const errUI = document.getElementById('schedule-error');
+                
+                if (now < start || now > end) {
+                    errUI.textContent = `Exam closed. Window: ${start.toLocaleString()} to ${end.toLocaleString()}`;
+                    errUI.classList.remove('hidden');
+                    return;
+                }
+
+                quizState = config;
+                document.getElementById('info-quiz-title').textContent = config.title;
+                switchScreen('student-info-screen');
             } catch (err) {
-                console.error(err);
-                alert("Failed to parse ZIP or publish to cloud.");
-            } finally {
-                btn.innerHTML = '<i class="fa-solid fa-globe mr-2"></i> Publish to Platform';
-                btn.disabled = false;
+                alert("Invalid Exam Package.");
             }
         }
 
-        // --- ADMIN RESULTS VIEWER ---
-        let allResults = [];
-        
-        async function fetchAllResults() {
-            if(!window.db) return;
-            const tbody = document.getElementById('results-table-body');
-            tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4"><i class="fa-solid fa-circle-notch fa-spin text-blue-500"></i> Loading...</td></tr>';
+        function submitStudentInfo(e) {
+            e.preventDefault();
+            const email = document.getElementById('std-email').value;
             
-            try {
-                // Rule 2: Fetch all, no complex queries
-                const q = window.fs_collection(window.db, 'artifacts', window.appId, 'public', 'data', 'results');
-                const snapshot = await window.fs_getDocs(q);
-                
-                allResults = [];
-                snapshot.forEach(doc => allResults.push({ id: doc.id, ...doc.data() }));
-                
-                // Sort by time in memory
-                allResults.sort((a, b) => b.submittedAt - a.submittedAt);
-                renderResultsTable(allResults);
-            } catch (e) {
-                console.error(e);
-                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-red-500">Failed to load results.</td></tr>';
-            }
-        }
-
-        function filterResults() {
-            const code = document.getElementById('filter-code').value.trim().toUpperCase();
-            if(!code) return renderResultsTable(allResults);
-            const filtered = allResults.filter(r => r.quizCode.toUpperCase() === code);
-            renderResultsTable(filtered);
-        }
-
-        function renderResultsTable(data) {
-            const tbody = document.getElementById('results-table-body');
-            tbody.innerHTML = '';
-            
-            if(data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-gray-400">No results found.</td></tr>';
+            // Check Local Storage to prevent duplicate submissions on the same device
+            const history = JSON.parse(localStorage.getItem('duqs_submissions') || "[]");
+            if (history.includes(quizState.title + email)) {
+                alert("participant is already registered");
                 return;
             }
-            
-            data.forEach((r, idx) => {
-                // Calculate basic score
-                let score = 0;
-                if(r.answers && r.quizData && r.quizData.questions) {
-                    r.quizData.questions.forEach((q, i) => {
-                        if(q.type === 'mcq' && r.answers[i] === q.options[q.correctOptionIndex]) score++;
-                    });
-                }
-                const totalMCQ = r.quizData?.questions?.filter(q=>q.type==='mcq').length || 0;
 
-                const tr = document.createElement('tr');
-                tr.className = "bg-white border-b hover:bg-gray-50";
-                tr.innerHTML = `
-                    <td class="px-4 py-3 font-mono font-bold">${r.quizCode}</td>
-                    <td class="px-4 py-3 font-medium text-gray-900">${r.studentName}</td>
-                    <td class="px-4 py-3 font-bold text-blue-700">${score}/${totalMCQ} <span class="text-xs text-gray-400 font-normal">(Auto)</span></td>
-                    <td class="px-4 py-3 font-bold ${r.strikes >= 3 ? 'text-red-600' : 'text-gray-600'}">${r.strikes}/3</td>
-                    <td class="px-4 py-3 font-bold text-orange-500">${r.tabShifts}</td>
-                    <td class="px-4 py-3">${Math.floor(r.timeUsed/60)}m ${r.timeUsed%60}s</td>
-                    <td class="px-4 py-3">
-                        <button onclick="showDetailedResult(${idx})" class="text-blue-600 hover:underline font-medium">View Report</button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
+            studentData = {
+                name: document.getElementById('std-name').value,
+                email: email,
+                contact: document.getElementById('std-contact').value
+            };
+            initQuiz();
         }
 
-        function showDetailedResult(idx) {
-            // Since we might be looking at filtered data, we need a better way. 
-            // For simplicity in this demo, let's just find by index in rendered data, but we passed index from data array.
-            // Wait, idx in renderResultsTable loop refers to the passed array. 
-            // I'll re-implement safely:
-        }
-        
-        // Fixing scope issue by attaching to global window for dynamic onclicks
-        window.showDetailedResult = function(realIdxStr) {
-            // Actually, best way is to pass JSON string if it's small, or just find in allResults.
-            // Let's pass the ID.
-        };
-        // Let's rewrite render loop to pass ID
-        renderResultsTable = function(data) {
-             const tbody = document.getElementById('results-table-body');
-            tbody.innerHTML = '';
-            if(data.length === 0) return tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-gray-400">No results found.</td></tr>';
-            
-            data.forEach((r) => {
-                let score = 0;
-                let totalMCQ = 0;
-                if(r.answers && r.quizData && r.quizData.questions) {
-                    r.quizData.questions.forEach((q, i) => {
-                        if(q.type === 'mcq') {
-                            totalMCQ++;
-                            if(r.answers[i] === q.options[q.correctOptionIndex]) score++;
-                        }
-                    });
-                }
-                const tr = document.createElement('tr');
-                tr.className = "bg-white border-b hover:bg-gray-50";
-                tr.innerHTML = `
-                    <td class="px-4 py-3 font-mono font-bold">${r.quizCode}</td>
-                    <td class="px-4 py-3 font-medium text-gray-900">${r.studentName}</td>
-                    <td class="px-4 py-3 font-bold text-blue-700">${score}/${totalMCQ}</td>
-                    <td class="px-4 py-3 font-bold ${r.strikes >= 3 ? 'text-red-600' : 'text-gray-600'}">${r.strikes}/3</td>
-                    <td class="px-4 py-3 font-bold text-orange-500">${r.tabShifts}</td>
-                    <td class="px-4 py-3">${Math.floor(r.timeUsed/60)}m ${r.timeUsed%60}s</td>
-                    <td class="px-4 py-3"><button onclick="openModal('${r.id}')" class="text-blue-600 font-bold hover:underline">Details</button></td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        window.openModal = function(id) {
-            const r = allResults.find(x => x.id === id);
-            if(!r) return;
-            
-            let html = `
-                <div class="grid grid-cols-2 gap-4 mb-6 text-sm bg-gray-50 p-4 rounded-lg border">
-                    <div><span class="text-gray-500">Name:</span> <strong>${r.studentName}</strong></div>
-                    <div><span class="text-gray-500">Email:</span> <strong>${r.studentEmail}</strong></div>
-                    <div><span class="text-gray-500">Code:</span> <strong>${r.quizCode}</strong></div>
-                    <div><span class="text-gray-500">Time:</span> <strong>${Math.floor(r.timeUsed/60)}m ${r.timeUsed%60}s</strong></div>
-                    <div class="col-span-2 text-red-600 font-bold mt-2 pt-2 border-t border-red-200"><i class="fa-solid fa-shield"></i> Security: ${r.strikes} Strikes, ${r.tabShifts} Tab Shifts/Blurs</div>
-                </div>
-                <h4 class="font-bold border-b pb-2 mb-4 text-blue-900">Answers Log</h4>
-                <div class="space-y-4 text-sm">
-            `;
-            
-            r.quizData.questions.forEach((q, i) => {
-                const ans = r.answers[i] || '<span class="italic text-gray-400">No Answer</span>';
-                let isCorrect = false;
-                let correctText = "";
-                
-                if(q.type === 'mcq') {
-                    correctText = q.options[q.correctOptionIndex];
-                    isCorrect = (ans === correctText);
-                } else {
-                    correctText = q.correctAnswerText || 'N/A (Manual Grading)';
-                }
-
-                html += `
-                    <div class="border rounded p-3 ${isCorrect && q.type === 'mcq' ? 'border-green-300 bg-green-50' : 'border-gray-200'}">
-                        <p class="font-bold text-gray-800 mb-1">Q${i+1}: ${q.text}</p>
-                        <p class="text-gray-700"><span class="font-semibold text-gray-500">Student:</span> ${ans}</p>
-                        <p class="text-green-700"><span class="font-semibold text-green-600/70">Expected:</span> ${correctText}</p>
-                    </div>
-                `;
-            });
-            
-            html += `</div>`;
-            document.getElementById('result-modal-content').innerHTML = html;
-            document.getElementById('result-modal').classList.remove('hidden');
-            document.getElementById('result-modal').classList.add('flex');
-        }
-
-
-        // --- 3. STUDENT CLIENT ENGINE ---
-        let studentData = { name: '', email: '', contact: '', code: '' };
-        let activeQuiz = null; 
-        
-        let currentQIndex = 0;
-        let userAnswers = [];
-        let strikes = 0;
-        let tabShiftsCount = 0;
-        const MAX_STRIKES = 3;
-        
-        let isExamActive = false;
-        let isHandlingStrike = false;
-        let timeRemaining = 0;
-        let initialTimeSecs = 0;
-        let timerInterval;
-        let examStartTime = 0;
-
-        async function fetchQuizFromCloud() {
-            if(!window.db) return alert("Database connection failed. Check connection.");
-            const codeInput = document.getElementById('student-quiz-code').value.trim().toUpperCase();
-            if(!codeInput) return;
-
-            const btn = document.getElementById('btn-fetch-quiz');
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Loading...';
-            btn.disabled = true;
-
-            try {
-                const docRef = window.fs_doc(window.db, 'artifacts', window.appId, 'public', 'data', 'quizzes', codeInput);
-                const snap = await window.fs_getDoc(docRef);
-                
-                if(snap.exists()) {
-                    activeQuiz = snap.data();
-                    studentData.code = codeInput;
-                    
-                    document.getElementById('info-quiz-title').textContent = activeQuiz.title;
-                    document.getElementById('rules-time').textContent = activeQuiz.timeLimit;
-                    switchScreen('student-info-screen');
-                } else {
-                    document.getElementById('student-login-err').classList.remove('hidden');
-                }
-            } catch (e) {
-                console.error(e);
-                alert("Error fetching exam data.");
-            } finally {
-                btn.innerHTML = 'Continue <i class="fa-solid fa-arrow-right"></i>';
-                btn.disabled = false;
-            }
-        }
-
-        window.submitStudentInfo = function(e) {
-            e.preventDefault();
-            studentData.name = document.getElementById('std-name').value;
-            studentData.email = document.getElementById('std-email').value;
-            studentData.contact = document.getElementById('std-contact').value;
-            switchScreen('setup-screen');
-        }
-
-        window.initQuiz = function() {
-            userAnswers = new Array(activeQuiz.questions.length).fill("");
-            
+        function initQuiz() {
+            userAnswers = new Array(quizState.questions.length).fill("");
             switchScreen('quiz-screen');
-            document.getElementById('header-title').textContent = activeQuiz.title;
-            document.getElementById('total-q-num').textContent = activeQuiz.questions.length;
-
-            if (document.documentElement.requestFullscreen) {
-                document.documentElement.requestFullscreen().then(() => {
-                    window.fsBlocked = false;
-                }).catch(e => {
-                    window.fsBlocked = true; 
-                });
-            }
-
+            document.getElementById('header-title').textContent = quizState.title;
+            timeRemaining = quizState.timeLimit * 60;
             isExamActive = true;
-            timeRemaining = activeQuiz.timeLimit * 60;
-            initialTimeSecs = timeRemaining;
-            examStartTime = Date.now();
+            if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(e=>{});
             
-            renderQuizQuestion();
             startTimer();
+            renderQuizQuestion();
         }
 
         function renderQuizQuestion() {
-            const q = activeQuiz.questions[currentQIndex];
+            const q = quizState.questions[currentQIndex];
+            document.getElementById('question-text').textContent = `${currentQIndex+1}. ${q.text}`;
             
-            document.getElementById('current-q-num').textContent = currentQIndex + 1;
-            document.getElementById('question-type-badge').textContent = q.type === 'mcq' ? "Multiple Choice" : "Short Answer";
-            
-            const prevBtn = document.getElementById('prev-btn');
-            const nextBtn = document.getElementById('next-btn');
-            
-            prevBtn.disabled = (currentQIndex === 0);
-            if (currentQIndex === activeQuiz.questions.length - 1) {
-                nextBtn.innerHTML = 'Submit <i class="fa-solid fa-paper-plane ml-2"></i>';
-                nextBtn.className = "px-8 py-3 bg-green-600 hover:bg-green-700 rounded-xl text-white font-bold transition shadow-lg";
-            } else {
-                nextBtn.innerHTML = 'Next <i class="fa-solid fa-arrow-right ml-2"></i>';
-                nextBtn.className = "px-8 py-3 bg-blue-700 hover:bg-blue-800 rounded-xl text-white font-bold transition shadow-lg";
-            }
-
-            // Content
-            let htmlStr = `<h3 class="text-xl font-medium text-gray-900 mb-6 whitespace-pre-wrap">${q.text}</h3>`;
-            
-            if (q.mediaBase64) {
-                const mediaBaseClass = "max-w-full flex justify-center items-center overflow-hidden rounded-xl bg-gray-100 p-2 mb-6 border border-gray-200 shadow-sm";
-                if (q.mediaType === 'image') {
-                    htmlStr += `<div class="${mediaBaseClass}"><img src="${q.mediaBase64}" class="media-preview" draggable="false"></div>`;
-                } else if (q.mediaType === 'audio') {
-                    htmlStr += `<div class="${mediaBaseClass} p-4 bg-blue-50 border-blue-200"><audio controls class="w-full max-w-md" controlsList="nodownload"><source src="${q.mediaBase64}"></audio></div>`;
-                } else if (q.mediaType === 'video') {
-                    htmlStr += `<div class="${mediaBaseClass}"><video controls class="media-preview w-full max-w-lg" controlsList="nodownload"><source src="${q.mediaBase64}"></video></div>`;
-                }
-            }
-            document.getElementById('question-content').innerHTML = htmlStr;
-
-            // Answers
             const ansUI = document.getElementById('answer-container');
-            ansUI.innerHTML = '';
-            const existingAns = userAnswers[currentQIndex] || "";
-            
-            if (q.type === 'mcq') {
-                q.options.forEach((opt) => {
-                    if(!opt.trim()) return;
-                    const isChecked = (existingAns === opt);
-                    const stateClass = isChecked ? "bg-blue-50 border-blue-400 ring-2 ring-blue-400" : "bg-white border-gray-200 hover:bg-gray-50";
-                    
-                    ansUI.innerHTML += `
-                        <label class="flex items-center p-4 border rounded-xl cursor-pointer transition shadow-sm ${stateClass}">
-                            <input type="radio" name="q_${currentQIndex}" value="${opt.replace(/"/g, '&quot;')}" class="w-5 h-5 text-blue-700 focus:ring-blue-500" ${isChecked ? 'checked' : ''} onchange="saveAnswer(this.value)">
-                            <span class="ml-4 text-gray-800 font-medium text-lg">${opt}</span>
-                        </label>
-                    `;
-                });
+            ansUI.innerHTML = q.options.map((opt, idx) => `
+                <label class="p-4 border rounded cursor-pointer ${userAnswers[currentQIndex] === opt ? 'bg-blue-50 border-blue-400' : ''}">
+                    <input type="radio" name="q" class="mr-2" ${userAnswers[currentQIndex] === opt ? 'checked' : ''} onchange="userAnswers[currentQIndex]='${opt}'; renderQuizQuestion();">
+                    ${opt}
+                </label>
+            `).join('');
+
+            document.getElementById('prev-btn').disabled = currentQIndex === 0;
+            const nextBtn = document.getElementById('next-btn');
+            if (currentQIndex === quizState.questions.length - 1) {
+                nextBtn.textContent = "Submit Exam";
+                nextBtn.className = "px-5 py-2 bg-green-600 text-white rounded";
             } else {
-                ansUI.innerHTML = `<textarea rows="5" class="w-full p-4 border-2 border-gray-300 rounded-xl focus:border-blue-600 focus:ring-0 outline-none resize-y transition text-gray-900 text-lg" placeholder="Type your answer here..." oninput="saveAnswer(this.value)">${existingAns}</textarea>`;
+                nextBtn.textContent = "Next";
+                nextBtn.className = "px-5 py-2 bg-blue-600 text-white rounded";
             }
         }
 
-        window.saveAnswer = function(val) {
-            userAnswers[currentQIndex] = val;
-            if (activeQuiz.questions[currentQIndex].type === 'mcq') renderQuizQuestion();
-        }
-
-        window.navQuestion = function(dir) {
-            const newIndex = currentQIndex + dir;
-            if (newIndex >= 0 && newIndex < activeQuiz.questions.length) {
-                currentQIndex = newIndex;
+        function navQuestion(dir) {
+            if (dir > 0 && currentQIndex === quizState.questions.length - 1) {
+                submitExam();
+            } else {
+                currentQIndex += dir;
                 renderQuizQuestion();
-            } else if (dir > 0 && currentQIndex === activeQuiz.questions.length - 1) {
-                if(confirm("Confirm Submission? You cannot return to the exam.")) {
-                    finishExam("Standard Submission", "Responses securely logged.");
-                }
             }
-        }
-
-        window.softRefresh = function() {
-            const container = document.getElementById('question-content').parentElement;
-            container.style.opacity = '0.3';
-            setTimeout(() => { renderQuizQuestion(); container.style.opacity = '1'; }, 200);
         }
 
         function startTimer() {
-            const timerUI = document.getElementById('timer');
             timerInterval = setInterval(() => {
                 timeRemaining--;
-                timerUI.textContent = `${Math.floor(timeRemaining / 60).toString().padStart(2, '0')}:${(timeRemaining % 60).toString().padStart(2, '0')}`;
-                if (timeRemaining <= 300) timerUI.classList.add('text-red-500', 'animate-pulse');
-                if (timeRemaining <= 0) {
-                    clearInterval(timerInterval);
-                    finishExam("Time Expired", "Allocated time ended. Responses saved.");
-                }
+                let m = Math.floor(timeRemaining/60).toString().padStart(2,'0');
+                let s = (timeRemaining%60).toString().padStart(2,'0');
+                document.getElementById('timer').textContent = `${m}:${s}`;
+                if (timeRemaining <= 0) submitExam();
             }, 1000);
         }
 
-        // --- ANTI-CHEATING ---
-        function handleViolation(reason) {
-            if (!isExamActive || isHandlingStrike) return;
-            tabShiftsCount++; 
-            isHandlingStrike = true;
-            strikes++;
-            
-            document.getElementById('strike-counter').textContent = strikes;
-            document.getElementById('overlay-strike-count').textContent = strikes;
-            document.getElementById('warning-message').textContent = reason;
-            
-            if (strikes >= MAX_STRIKES) {
-                finishExam("EXAM TERMINATED", "Maximum security violations exceeded. Strike 3.", true);
-                return;
-            }
-            document.getElementById('warning-overlay').classList.remove('hidden');
-            document.getElementById('warning-overlay').classList.add('flex');
-        }
-
-        document.addEventListener('visibilitychange', () => { if (document.hidden && isExamActive) handleViolation("Tab shifted or minimized."); });
-        window.addEventListener('blur', () => { if (isExamActive) handleViolation("Window lost focus."); });
-        document.addEventListener('fullscreenchange', () => { if (!window.fsBlocked && !document.fullscreenElement && isExamActive) handleViolation("Exited Fullscreen."); });
-        document.addEventListener('contextmenu', e => { if (isExamActive) e.preventDefault(); });
-        ['copy','paste','cut'].forEach(evt => document.addEventListener(evt, e => { if (isExamActive) e.preventDefault(); }));
-        document.addEventListener('keydown', e => {
-            if (!isExamActive) return;
-            if (['F5', 'F12'].includes(e.key) || ((e.ctrlKey || e.metaKey) && ['r','c','v'].includes(e.key.toLowerCase()))) {
-                e.preventDefault();
-                if(e.key.toLowerCase() === 'r' || e.key === 'F5') alert("Use 'Reload UI' button instead.");
-            }
-        });
-
-        window.resumeQuiz = function() {
-            document.getElementById('warning-overlay').classList.add('hidden');
-            document.getElementById('warning-overlay').classList.remove('flex');
-            if (!window.fsBlocked && !document.fullscreenElement && document.documentElement.requestFullscreen) {
-                document.documentElement.requestFullscreen().catch(e => {});
-            }
-            setTimeout(() => { isHandlingStrike = false; }, 1000);
-        }
-
-        // --- SUBMISSION & REVEAL LOGIC ---
-        async function finishExam(title, message, isTerminated = false) {
+        async function submitExam() {
             isExamActive = false;
             clearInterval(timerInterval);
-            if (!window.fsBlocked && document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(e => {});
+            if (document.fullscreenElement) document.exitFullscreen().catch(e=>{});
+            
+            // Mark Local Storage to enforce single registration rule locally
+            const history = JSON.parse(localStorage.getItem('duqs_submissions') || "[]");
+            history.push(quizState.title + studentData.email);
+            localStorage.setItem('duqs_submissions', JSON.stringify(history));
 
+            const payload = {
+                action: "saveResult",
+                data: {
+                    quizTitle: quizState.title,
+                    studentName: studentData.name,
+                    studentEmail: studentData.email,
+                    studentContact: studentData.contact,
+                    strikes: strikes,
+                    tabShifts: 0,
+                    timeUsed: (quizState.timeLimit * 60) - timeRemaining,
+                    answers: userAnswers
+                }
+            };
+
+            document.body.innerHTML = `<div class="h-screen flex flex-col items-center justify-center bg-gray-900 text-white text-center"><i class="fa-solid fa-circle-check text-6xl text-green-400 mb-4"></i><h1 class="text-4xl font-bold">Exam Submitted!</h1><p class="text-gray-400 mt-2">Answers will be available once the global exam window closes.</p></div>`;
+            
+            // Send to Google Sheet
+            fetch(GAS_WEB_APP_URL, { method: 'POST', body: JSON.stringify(payload) });
+        }
+        
+        // Anti-cheat intercepts
+        window.addEventListener('blur', () => { if(isExamActive) triggerStrike("Window lost focus."); });
+        document.addEventListener('visibilitychange', () => { if(document.hidden && isExamActive) triggerStrike("Tab switched."); });
+        
+        function triggerStrike(reason) {
+            strikes++;
+            document.getElementById('warning-message').textContent = reason + ` (Strike ${strikes}/3)`;
+            document.getElementById('warning-overlay').classList.remove('hidden');
+            document.getElementById('warning-overlay').classList.add('flex');
+            if (strikes >= 3) submitExam();
+        }
+        
+        function resumeQuiz() {
             document.getElementById('warning-overlay').classList.add('hidden');
             document.getElementById('warning-overlay').classList.remove('flex');
-            switchScreen('congrats-screen');
-            
-            if(isTerminated) {
-                document.getElementById('end-icon').innerHTML = '<i class="fa-solid fa-ban"></i>';
-                document.getElementById('end-icon').className = 'text-8xl mb-6 text-red-500';
-            }
-
-            document.getElementById('end-title').textContent = title;
-            document.getElementById('end-message').textContent = message;
-
-            // Upload to Firebase
-            if(window.db) {
-                try {
-                    await window.fs_addDoc(window.fs_collection(window.db, 'artifacts', window.appId, 'public', 'data', 'results'), {
-                        quizCode: studentData.code,
-                        studentName: studentData.name,
-                        studentEmail: studentData.email,
-                        studentContact: studentData.contact,
-                        answers: userAnswers,
-                        strikes: strikes,
-                        tabShifts: tabShiftsCount,
-                        timeUsed: initialTimeSecs - timeRemaining,
-                        submittedAt: Date.now(),
-                        quizData: activeQuiz // Store copy of quiz logic to calculate scores later robustly
-                    });
-                } catch(e) { console.error("Upload failed", e); }
-            }
-
-            startRevealCountdown();
-        }
-
-        function startRevealCountdown() {
-            // Answers reveal exactly when the max duration of the exam passes from the moment they started
-            const endTime = examStartTime + (activeQuiz.timeLimit * 60 * 1000);
-            
-            const waitInterval = setInterval(() => {
-                const now = Date.now();
-                const diff = Math.floor((endTime - now) / 1000);
-                
-                if(diff <= 0) {
-                    clearInterval(waitInterval);
-                    document.getElementById('wait-timer-container').classList.add('hidden');
-                    document.getElementById('reveal-btn-container').classList.remove('hidden');
-                } else {
-                    document.getElementById('reveal-countdown').textContent = `${Math.floor(diff / 60).toString().padStart(2, '0')}:${(diff % 60).toString().padStart(2, '0')}`;
-                }
-            }, 1000);
-        }
-
-        window.showAnswers = function() {
-            switchScreen('answers-screen');
-            const container = document.getElementById('answers-container');
-            let html = '';
-            
-            activeQuiz.questions.forEach((q, i) => {
-                const ans = userAnswers[i] || 'No Answer';
-                let isCorrect = false;
-                let correctText = "";
-                
-                if(q.type === 'mcq') {
-                    correctText = q.options[q.correctOptionIndex];
-                    isCorrect = (ans === correctText);
-                } else {
-                    correctText = q.correctAnswerText || 'N/A';
-                }
-
-                html += `
-                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-                        <div class="flex justify-between items-start mb-4">
-                            <h3 class="font-bold text-gray-800 text-lg flex-grow mr-4"><span class="text-blue-600">Q${i+1}:</span> ${q.text}</h3>
-                            ${q.type === 'mcq' ? (isCorrect ? '<span class="bg-green-100 text-green-700 px-3 py-1 rounded font-bold whitespace-nowrap"><i class="fa-solid fa-check"></i> Correct</span>' : '<span class="bg-red-100 text-red-700 px-3 py-1 rounded font-bold whitespace-nowrap"><i class="fa-solid fa-xmark"></i> Incorrect</span>') : ''}
-                        </div>
-                        
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div class="bg-gray-50 p-4 rounded-lg border border-gray-100">
-                                <p class="text-xs font-bold text-gray-400 uppercase mb-1">Your Answer</p>
-                                <p class="font-medium text-gray-900">${ans}</p>
-                            </div>
-                            <div class="bg-blue-50 p-4 rounded-lg border border-blue-100">
-                                <p class="text-xs font-bold text-blue-500 uppercase mb-1">Correct Answer</p>
-                                <p class="font-medium text-blue-900">${correctText}</p>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            });
-            
-            container.innerHTML = html;
+            if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(e=>{});
         }
     </script>
 </body>
