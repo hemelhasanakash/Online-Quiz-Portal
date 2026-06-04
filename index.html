@@ -32,12 +32,15 @@
         import { getFirestore, doc, setDoc, getDoc, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // Environment variables provided by Canvas
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'duqs-platform-v1';
-        let firebaseConfig = {};
-        try {
-            if (typeof __firebase_config !== 'undefined') firebaseConfig = JSON.parse(__firebase_config);
-        } catch (e) { console.error("Firebase config error", e); }
-
+        const firebaseConfig = {
+  apiKey: "AIzaSyC6Luq6xaWRuO_a2PgwMGEW_Y5p6LEUA84",
+  authDomain: "duqs-online-quiz-portal.firebaseapp.com",
+  projectId: "duqs-online-quiz-portal",
+  storageBucket: "duqs-online-quiz-portal.firebasestorage.app",
+  messagingSenderId: "973547308536",
+  appId: "1:973547308536:web:32c4c23e149e1e5093c20d",
+  measurementId: "G-36GP363R3Z"
+};
         window.db = null;
         window.auth = null;
         window.appId = appId;
